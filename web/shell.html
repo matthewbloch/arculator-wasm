@@ -101,7 +101,7 @@
         <progress value="0" max="100" id="progress" hidden=1></progress>
     </div>
     <div class="emscripten_border">
-        <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+        <canvas tabindex=1 class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" onclick="document.getElementById('canvas').focus();"></canvas>
     </div>
     <hr />
     <div class="emscripten">
@@ -115,6 +115,7 @@
     </div>
 
     <hr />
+    <input class="emscripten" id="input" ></textarea>
     <textarea class="emscripten" id="output" rows="8"></textarea>
     <hr>
     <script type='text/javascript'>
@@ -123,7 +124,10 @@
         var spinnerElement = document.getElementById('spinner');
 
         var Module = {
-             onRuntimeInitialized: function () {
+            preRun: [function() {
+                ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "canvas";
+            }],
+            onRuntimeInitialized: function () {
                 var resize = function() {
                     var canvas = document.getElementById('canvas');
                     var container = document.getElementsByClassName('emscripten_border')[0];

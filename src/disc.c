@@ -87,13 +87,19 @@ void disc_load(int drive, char *fn)
 	FILE *f;
 	rpclog("disc_load %i %s\n", drive, fn);
 //        setejecttext(drive, "");
-	if (!fn) return;
+	if (!fn) {
+        rpclog("disc_load: no filename\n");
+        return;
+    }
 	p = get_extension(fn);
 	if (!p) return;
 //        setejecttext(drive, fn);
 	rpclog("Loading :%i %s %s\n", drive, fn,p);
 	f = fopen(fn, "rb");
-	if (!f) return;
+	if (!f) { 
+        rpclog("disc_load: file '%s' not found\n", fn);
+        return;
+    }
 	fseek(f, -1, SEEK_END);
 	size = ftell(f) + 1;
 	fclose(f);

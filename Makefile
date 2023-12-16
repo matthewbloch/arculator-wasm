@@ -59,7 +59,7 @@ OBJS := 82c711 82c711_fdc \
 	st506 st506_akd52 timer vidc video_sdl2gl wd1770 \
 	wx-sdl2-joystick \
     emscripten_main emscripten-console emscripten_podule_config podules-static \
-	embed c-embed
+	embed c-embed command
 
 PODULE_COMMON_INCLUDES = $(addprefix -I, $(sort $(dir $(wildcard podules/common/*/*.h))))
 PODULE_DEFINES = $(addprefix -DPODULE_, $(filter-out common_%, $(BUILD_PODULES)))
@@ -88,8 +88,33 @@ serve: wasm web/serve.js
 ######################################################################
 
 build/generated-src/c-embed.c: build/native/c-embed-build ${DATA} ${ROMS}
+
+build/native/command-test.o: build/generated-src/command.h
+build/native/command-test: build/native/command-test.o build/native/command.o
+	$(CC) -g -o $@ $^
+
+build/wasm/command.o: build/generated-src/command.c build/generated-src/command.h
+	emcc -c  -g -Os -o $@ $<
+
+build/native/command.o: build/generated-src/command.c build/generated-src/command.h
+	$(CC) -c  -g -Os -o $@ $<
+
+build/win64/command.o: build/generated-src/command.c build/generated-src/command.h
+	$(W64CC) -c  -g -Os -o $@ $<
+
+build/generated-src/%.c: src/%.glsl
 	@mkdir -p $(@D)
 	./build/native/c-embed-build ${DATA} > $@
+
+PACKCC=$(shell pwd)/build/native/packcc
+
+build/generated-src/command.c build/generated-src/command.h: src/command.peg $(PACKCC)
+	@mkdir -p $(@D)
+	cd build/generated-src; $(PACKCC) -o command ../../src/command.peg
+
+$(PACKCC): src/packcc.c
+	@mkdir -p $(@D)
+	${CC} -Wall -o $@ $<
 
 ######################################################################
 

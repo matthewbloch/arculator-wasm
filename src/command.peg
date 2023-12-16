@@ -1,0 +1,98 @@
+#reset
+#machine A3000
+#rom load <ARTHUR_030| ... >
+#floppy load 0 <filename>
+#floppy eject 0
+#hd load 4 <filename>
+#mouse mode <auto|relative|absolute>
+#monitor <standard|multisync|vga|mono|lcd>
+#sound on
+#cpu <arm2|arm250|arm3>
+#memory 4
+#joystick a3010 0
+#swi &01234 "foo" 123
+#*Run ADFS::0.$.!élite
+
+# Command-line interface to Arculator
+# Built with https://github.com/arithy/packcc
+#
+# This file defines the syntax and generates parsing code. Each command
+# should have a corresponding cmd_* file in `command_impl.c`
+
+%prefix "command"
+
+%header {
+    #include <stdio.h>
+
+    typedef struct {
+        FILE *in;
+        int err;          // 0 means OK, anything else is an error
+        char output[1000];
+    } command_parse_t;
+
+    /* Parse the command line, returning error code and (if `out` is not NULL) copying an error message */
+    int command_parse_line(char* line, char out[1000]);
+}
+
+%auxil "command_parse_t*"
+
+%source {
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stddef.h>
+
+    // undefine this because we handle it at the top level
+    #define PCC_ERROR(a)
+    #define PCC_GETCHAR(aux) fgetc(aux->in)
+    #define CMD_ERROR(c, m) do { auxil->err = c; strncpy(auxil->output, m, sizeof(auxil->output)); } while(0)
+
+    int command_parse_line(char* line, char out[1000]) {
+            command_parse_t pctx = {.in = fmemopen(line, strlen(line), "r")};
+            if (!pctx.in)
+                abort();
+            command_context_t *ctx = command_create(&pctx);
+            int result;
+            pctx.output[0] = 0;
+            command_parse(ctx, &result);
+            command_destroy(ctx);
+            if (out) {
+                strncpy(out, pctx.output, 1000);
+            }
+            return pctx.err;
+    }
+}
+
+
+command <- (
+  config_set /
+  floppy_load /
+  reset /
+  star_command
+) 
+~ { CMD_ERROR(1, "No such command"); }
+
+star_command <- '*' < . * > {
+    CMD_ERROR(2, "UNIMPLEMENTED: Star commands");
+}
+
+reset <- 'reset' {
+    extern void arc_reset();
+    arc_reset();
+}
+
+floppy_load <- 'floppy load' _ < d:floppy_drive_number > _ < f:string > { 
+    extern void arc_disc_change(int drive, const char* filename);
+    arc_disc_change(atoi($1), $2);
+}
+
+config_set <- 'config' _ < f:string > { 
+    extern char machine_config_file[256];
+    snprintf(machine_config_file, 255, "configs/%s.cfg", $1);
+}
+
+floppy_drive_number <- [0123]
+
+string <- '"' f:quoted_string '"' / f:unquoted_string { $$ = f; }
+quoted_string <- [^"\n]+
+unquoted_string <- [^ \n]+
+_ <- [ \t]+

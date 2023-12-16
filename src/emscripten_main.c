@@ -11,6 +11,7 @@
 #endif
 #include "arc.h"
 #include "config.h"
+#include "command.h"
 #include "disc.h"
 #include "ioc.h"
 #include "sound.h"
@@ -59,6 +60,27 @@ static volatile int quited = 0;
 static volatile int pause_main_thread = 0;
 
 static SDL_mutex *main_thread_mutex = NULL;
+
+#ifndef __EMSCRIPTEN__
+#include <unistd.h>
+#include <fcntl.h>
+static 
+void process_command_stdin()
+{
+    char command[200];
+    char output[1000];
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+    /* Emscripten turns this into a pop-up, don't use it! */
+    int chars = read(0, command, 200);
+    if (chars < 0)
+        return;
+    int err = command_parse_line(command, output);
+    if (err) {
+        write(1, output, strlen(output));
+        write(1, "\n", 1);
+    }
+}
+#endif
 
 void process_event()
 {
@@ -136,6 +158,9 @@ void arcloop()
 
         if (!pause_main_thread)
                 arc_run(run_ms);
+#ifndef __EMSCRIPTEN__
+        process_command_stdin();
+#endif
 
         SDL_UnlockMutex(main_thread_mutex);
         process_event();
@@ -311,6 +336,15 @@ int EMSCRIPTEN_KEEPALIVE main(int argc, char** argv)
 {
         rpclog("emscripten main - argc=%d\n", argc);
         opendlls();
+        for (int i = 1; i < argc; i++) {
+            rpclog("parsing %s\n", argv[i]);
+            char message[1000];
+            if (command_parse_line(argv[i], message))
+            {
+                rpclog("command_parse failed: %s\n", message);
+                exit(1);
+            }
+        }
         if (argc > 1)
         {
                 fixed_fps = atoi(argv[1]);
