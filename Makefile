@@ -88,6 +88,9 @@ serve: wasm web/serve.js
 ######################################################################
 
 build/generated-src/c-embed.c: build/native/c-embed-build ${DATA} ${ROMS}
+build/native/emscripten_main.o: build/generated-src/command.h
+build/wasm/emscripten_main.o: build/generated-src/command.h
+build/win64/emscripten_main.o: build/generated-src/command.h
 
 build/native/command-test.o: build/generated-src/command.h
 build/native/command-test: build/native/command-test.o build/native/command.o

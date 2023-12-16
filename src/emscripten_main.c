@@ -61,7 +61,7 @@ static volatile int pause_main_thread = 0;
 
 static SDL_mutex *main_thread_mutex = NULL;
 
-#ifndef __EMSCRIPTEN__
+#ifndef __EMSCRIPTEN__ 
 #include <unistd.h>
 #include <fcntl.h>
 static 
@@ -76,8 +76,9 @@ void process_command_stdin()
         return;
     int err = command_parse_line(command, output);
     if (err) {
-        write(1, output, strlen(output));
-        write(1, "\n", 1);
+        if ((write(1, output, strlen(output)) < 0) || (write(1, "\n", 1) < 0)) {
+          rpclog("console write failed\n");
+        }
     }
 }
 #endif
