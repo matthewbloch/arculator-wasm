@@ -266,7 +266,7 @@ arc.cfg:
 
 ######################################################################
 
-build/src-generated/c-embed.c: ${DATA}
+build/generated-src/c-embed.c: ${DATA}
 	@mkdir -p $(@D)
 	./build/native/c-embed-build ${DATA} > $@.tmp && mv $@.tmp $@
 
