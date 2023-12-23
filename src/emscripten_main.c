@@ -61,7 +61,7 @@ static volatile int pause_main_thread = 0;
 
 static SDL_mutex *main_thread_mutex = NULL;
 
-#ifndef __EMSCRIPTEN__ 
+#if !defined(__EMSCRIPTEN__) && !defined(_WIN32)
 #include <unistd.h>
 #include <fcntl.h>
 static 
@@ -159,7 +159,7 @@ void arcloop()
 
         if (!pause_main_thread)
                 arc_run(run_ms);
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && !defined(_WIN32)
         process_command_stdin();
 #endif
 
