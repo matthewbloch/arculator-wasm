@@ -31,7 +31,7 @@ static int win_dofullscreen = 0;
 static int win_dosetresize = 0;
 static int win_renderer_reset = 0;
 
-#define MAX_TICKS_PER_FRAME 500
+#define MAX_TICKS_PER_FRAME 16
 
 static int fixed_fps = 0;
 
