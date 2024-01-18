@@ -103,7 +103,8 @@ void process_event()
     }
 }
 
-static time_t last_seconds = 0;
+static Uint64 nextFlip = 0;
+
 void arcloop()
 {
         if (win_renderer_reset)
@@ -134,18 +135,25 @@ void arcloop()
                 run_ms = ticks_since_last < MAX_TICKS_PER_FRAME ? ticks_since_last : MAX_TICKS_PER_FRAME;
         }
 
-        SDL_LockMutex(main_thread_mutex);
-
-        if (!pause_main_thread)
-                arc_run(run_ms);
-
-        SDL_UnlockMutex(main_thread_mutex);
         process_event();
 
         if (quited)
             exit(0);
-}
 
+        SDL_LockMutex(main_thread_mutex);
+
+        if (!pause_main_thread)
+                arc_run(run_ms);
+        
+        SDL_UnlockMutex(main_thread_mutex);
+
+        Uint64 now = SDL_GetPerformanceCounter();
+        if (now >= nextFlip)
+        {
+            nextFlip = now + (SDL_GetPerformanceFrequency() / 60);
+            video_renderer_flip();
+        }
+}
 static int arc_main_thread()
 {
     rpclog("Arculator startup\n");

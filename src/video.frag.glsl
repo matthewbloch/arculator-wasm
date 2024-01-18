@@ -5,11 +5,14 @@ in vec3 ourColor;
 in vec2 TexCoord;
 uniform sampler2D texture1;
 uniform vec4 zoom;
+uniform int frame;
 void main()
 {
     vec4 izoom = zoom;
     ivec2 isize = textureSize(texture1, 0);
     vec2  size = vec2(isize.x, isize.y);
+
+    izoom.y += float(frame) * 1024;
 
     // we flipped the y co-ordinate of the texture, compensate for that
     izoom.y += izoom.w;

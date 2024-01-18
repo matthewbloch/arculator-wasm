@@ -62,17 +62,42 @@ int skip_video_render = 0;
 int take_screenshot = 0;
 int record_video = 0;
 
-void EMSCRIPTEN_KEEPALIVE arc_capture_screenshot() {
-	take_screenshot = 1;
+#define AVG_FRAMES 100
+static Uint64 flips[AVG_FRAMES];
+static Uint32 flipN = 0;
+
+typedef struct
+{
+    int x, y, w, h, dblscan;
+    Uint64 when;
+} video_renderer_present_t;
+
+/* The VIDC runs at 50Hz, but most displays in 2024 are 60Hz. So we store 
+ * this many VIDC frames in a buffer in order to compose the final frame.
+ * (not clear how that will happen yet).
+ */
+#define FRAME_BUFFERS 2
+static video_renderer_present_t frameFinished[FRAME_BUFFERS];
+static int frameCurrent = 0;
+#define FRAME_PREV ((frameCurrent + (FRAME_BUFFERS-1)) % FRAME_BUFFERS)
+#define FRAME_NEXT ((frameCurrent + 1) % FRAME_BUFFERS)
+
+void EMSCRIPTEN_KEEPALIVE arc_capture_screenshot()
+{
+    take_screenshot = 1;
 }
 
-void EMSCRIPTEN_KEEPALIVE arc_capture_video(int record) {
-	if (record) {
-		rpclog("arc_capture_video: start recording\n");
-	} else {
-		rpclog("arc_capture_video: stop recording\n");
-	}
-	record_video = record;
+void EMSCRIPTEN_KEEPALIVE arc_capture_video(int record)
+{
+    if (record)
+    {
+        rpclog("arc_capture_video: start recording\n");
+    }
+    else
+    {
+        rpclog("arc_capture_video: stop recording\n");
+    }
+    record_video = record;
 }
 
 #ifdef __EMSCRIPTEN__
@@ -133,6 +158,8 @@ video_window_info_t video_window_info() {
 GLuint shaderProgram;
 /* Uniform index for the "zoom" vec4 */
 GLuint monitorZoomLoc;
+/* Uniform index for the "frame" */
+GLuint frameLoc;
 /* Vertex array object listing virtual monitor coordinates */
 GLuint monitorVao;
 static unsigned char initpatterndat[2048 * 1024 * 4];
@@ -164,6 +191,7 @@ int video_renderer_init(void *unused)
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+    SDL_GL_SetSwapInterval(1);
 
 #ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -235,6 +263,8 @@ int video_renderer_init(void *unused)
     CHECK_GL_ERROR;
     monitorZoomLoc = glGetUniformLocation(shaderProgram, "zoom");
     CHECK_GL_ERROR;
+    frameLoc = glGetUniformLocation(shaderProgram, "frame");
+    CHECK_GL_ERROR;
 
     /* Build the vertex array object for the "monitor" - a rectangle that fills the viewport. 
      * Through OpenGL bindings this references a vertex buffer object and an element buffer object,
@@ -289,7 +319,7 @@ int video_renderer_init(void *unused)
     glGenTextures(1, &screenTexture);
     glBindTexture(GL_TEXTURE_2D, screenTexture);
     /* This 2048×1024 is the screen memory hardwired into the VIDC emulation */
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, 1024 * FRAME_BUFFERS, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     CHECK_GL_ERROR;
     /* Sometimes repeating the pattern is useful to see when we mess something up */
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -411,7 +441,7 @@ void video_renderer_update(vidc_bitmap_t *src, int src_x, int src_y, int dest_x,
     CHECK_GL_ERROR;
     glTexSubImage2D(
         GL_TEXTURE_2D, 0,
-        texture_rect.x, texture_rect.y, texture_rect.w, texture_rect.h,
+        texture_rect.x, (frameCurrent*1024) + texture_rect.y, texture_rect.w, texture_rect.h,
         /* it's BGRA really but OpenGL ES won't do that - so the fragment shader swaps it */
         GL_RGBA,
         GL_UNSIGNED_BYTE,
@@ -436,13 +466,36 @@ void video_renderer_update(vidc_bitmap_t *src, int src_x, int src_y, int dest_x,
      */
 }
 
-/*Render display texture to video window.*/
+
+/* Signalled by the VIDC to signal a complete frame.
+ * 
+ * We store the finished frame's dimensions, ready for when it's time to flip.
+ */
 void video_renderer_present(int src_x, int src_y, int src_w, int src_h, int dblscan)
 {
-	if (skip_video_render)
-		return;
-
     LOG_VIDEO_FRAMES("video_renderer_present: %d,%d + %d,%d\n", src_x, src_y, src_w, src_h);
+
+    //printf("finished frame %d\n", frameCurrent);
+    frameFinished[frameCurrent] = (video_renderer_present_t){src_x, src_y, src_w, src_h, dblscan, SDL_GetPerformanceCounter()};
+    frameCurrent = FRAME_NEXT;
+}
+
+Uint64 lastFlip=0;
+void video_renderer_flip()
+{
+    Uint64 thisFlip = SDL_GetPerformanceCounter();
+    if (lastFlip) {
+        Uint64 delta = thisFlip - lastFlip;
+        printf("flip frequency %fHz, ", (float)SDL_GetPerformanceFrequency() / (float)delta);
+    }
+    lastFlip = thisFlip;
+
+    int src_x = frameFinished[FRAME_PREV].x;
+    int src_y = frameFinished[FRAME_PREV].y;
+    int src_w = frameFinished[FRAME_PREV].w;
+    int src_h = frameFinished[FRAME_PREV].h;
+    //printf("video_renderer_flip: %d,%d + %d,%d (frame=%d)\n", src_x, src_y, src_w, src_h, FRAME_PREV);
+    // int dblscan = frameFinished[FRAME_PREV].dblscan;
 
     /* Adjust viewport so we display 4:3 as best we can in the window */
     video_window_info_t video = video_window_info();
@@ -472,6 +525,7 @@ void video_renderer_present(int src_x, int src_y, int src_w, int src_h, int dbls
      * the VIDC asks for */
 
     glUniform4f(monitorZoomLoc, src_x, src_y, src_w, src_h);
+    glUniform1i(frameLoc, FRAME_PREV);
     CHECK_GL_ERROR;
 
     glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
@@ -485,7 +539,34 @@ void video_renderer_present(int src_x, int src_y, int src_w, int src_h, int dbls
     glBindVertexArray(monitorVao); CHECK_GL_ERROR;
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); CHECK_GL_ERROR;
 
-    /* Should we handle framebuffers a bit more explicitly? This seems to work. */
-
+    // Arculator is single-threaded and we've enabled vsync. So this stalls the emulator...
+    Uint64 swapStart = SDL_GetPerformanceCounter();
     SDL_GL_SwapWindow(sdl_main_window);
+    Uint64 swapEnd = SDL_GetPerformanceCounter();
+    flips[flipN++ % AVG_FRAMES] = swapEnd - swapStart;
+    if (flipN > 10) {
+        Uint64 avg = 0;
+        int samples = flipN < AVG_FRAMES ? flipN : AVG_FRAMES;
+        for (int f=0; f < samples; f++) {
+            avg += flips[(flipN+f) % AVG_FRAMES];
+        }
+        avg /= samples;
+        printf("average wait time for flip over %d frames = %fms (outliers", samples, 1000.0f * (float)avg / (float)SDL_GetPerformanceFrequency());
+        int outliers=0;
+        for (int f = 1; f < samples; f++)
+        {
+            float value = (float)flips[(flipN + f) % AVG_FRAMES] / (float) SDL_GetPerformanceFrequency();
+            if (value > 1.0 && value > avg*1.5) {
+                printf(" %fms", value);
+                outliers++;
+                if (outliers > 2) {
+                    printf("...");
+                    break;
+                }
+            }
+        }
+        printf(")");
+    }
+
+    printf("\n");
 }
