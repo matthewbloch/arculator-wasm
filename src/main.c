@@ -343,7 +343,7 @@ void arc_run(int millisecs)
 	LOG_EVENT_LOOP("arc_run()\n");
 	joystick_poll_host();
 	mouse_poll_host();
-	keyboard_poll_host();
+	//keyboard_poll_host();
 	//total_emulation_millis += millisecs;
 
 	if (mouse_mode == MOUSE_MODE_ABSOLUTE) 

@@ -44,14 +44,12 @@ void EMSCRIPTEN_KEEPALIVE sdl_enable_mouse_capture()
 {
         if (mouse_capture_enable() != 0)
                 return;
-        mousecapture = 1;
         update_status_text = 1;
 }
 
 void EMSCRIPTEN_KEEPALIVE sdl_disable_mouse_capture()
 {
         mouse_capture_disable();
-        mousecapture = 0;
         update_status_text = 1;
 }
 
@@ -71,7 +69,7 @@ void process_event()
         }
         if (e.type == SDL_MOUSEBUTTONUP)
         {
-            if (e.button.button == SDL_BUTTON_LEFT && !mousecapture && mouse_mode == MOUSE_MODE_RELATIVE)
+            if (e.button.button == SDL_BUTTON_LEFT && !mouse_capture_enabled() && !vidc_cursor_visible())
             {
                 rpclog("Mouse click -- enabling mouse capture\n");
                 sdl_enable_mouse_capture();
@@ -82,7 +80,7 @@ void process_event()
             switch (e.window.event)
             {
             case SDL_WINDOWEVENT_FOCUS_LOST:
-                if (mousecapture)
+                if (mouse_capture_enabled())
                 {
                     rpclog("Focus lost -- disabling mouse capture\n");
                     sdl_disable_mouse_capture();
@@ -93,7 +91,11 @@ void process_event()
                 break;
             }
         }
-        if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && !fullscreen && mousecapture)
+        if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
+        {
+            keyboard_poll_host();
+        }
+        if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && !fullscreen && mouse_capture_enabled())
         {
             rpclog("CTRL-END pressed -- disabling mouse capture\n");
             sdl_disable_mouse_capture();

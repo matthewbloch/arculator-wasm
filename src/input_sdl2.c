@@ -6,21 +6,25 @@
 #include "plat_input.h"
 #include "video_sdl2.h"
 #include "video.h"
+#include "vidc.h"
 
 static int mouse_buttons;
 static int mouse_x = 0, mouse_y = 0;
 
-static int mouse_capture = 0;
-
 static void mouse_init()
 {
     //SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
-	SDL_ShowCursor(SDL_DISABLE);
+	//SDL_ShowCursor(SDL_DISABLE);
     mouse_mode = MOUSE_MODE_ABSOLUTE;
 }
 
 static void mouse_close()
 {
+}
+
+int mouse_capture_enabled()
+{
+    return SDL_GetRelativeMouseMode() == SDL_TRUE;
 }
 
 int mouse_capture_enable()
@@ -37,7 +41,6 @@ int mouse_capture_enable()
 	// give a spurious delta. So this call ensures the flush happens
 	SDL_GetRelativeMouseState(NULL, NULL);
 
-	mouse_capture = 1;
 	mouse_mode = MOUSE_MODE_RELATIVE;
 
     return 0;
@@ -46,7 +49,7 @@ int mouse_capture_enable()
 void mouse_capture_disable()
 {
 	SDL_SetRelativeMouseMode(SDL_FALSE);
-    mouse_capture = 0;
+    mouse_mode = MOUSE_MODE_ABSOLUTE;
     rpclog("Mouse released\n");
 }
 
@@ -102,6 +105,10 @@ void mouse_poll_host()
 	{
 		mouse_buttons |= 4;
 	}
+
+    SDL_ShowCursor(vidc_cursor_visible() ? SDL_DISABLE : SDL_ENABLE);
+    if (vidc_cursor_visible() && mouse_capture_enabled())
+        mouse_capture_disable();
 	// printf("mouse %d, %d\n", mouse_x, mouse_y);
 }
 
