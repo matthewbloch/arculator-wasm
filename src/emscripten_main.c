@@ -148,18 +148,17 @@ void arcloop()
 
 static int arc_main_thread()
 {
-        rpclog("Arculator startup\n");
+    rpclog("Arculator startup\n");
 
-        last_seconds = 0;
-        arc_init();
 
-        if (!video_renderer_init(NULL))
-        {
-                fatal("Video renderer init failed");
-        }
-        input_init();
-        //sdl_enable_mouse_capture();
+    if (!video_renderer_init(NULL))
+    {
+        fatal("Video renderer init failed");
+    }
 
+    input_init();
+    // sdl_enable_mouse_capture();
+    arc_init();
 
         // if fixed_fps is 0, emscripten will use requestAnimationFrame
 #ifdef __EMSCRIPTEN__

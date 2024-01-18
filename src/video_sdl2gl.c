@@ -49,6 +49,7 @@
 SDL_Window *sdl_main_window = NULL;
 static SDL_GLContext context = NULL;
 static GLuint screenTexture;
+static SDL_DisplayMode displayMode;
 
 // FIXME: vestigial bits left in to avoid changes to other files
 int selected_video_renderer;
@@ -134,6 +135,8 @@ GLuint shaderProgram;
 GLuint monitorZoomLoc;
 /* Vertex array object listing virtual monitor coordinates */
 GLuint monitorVao;
+static unsigned char initpatterndat[2048 * 1024 * 4];
+
 
 void glShaderSourceWrap(GLuint shader, const GLchar *string, const GLint length)
 {
@@ -298,6 +301,21 @@ int video_renderer_init(void *unused)
     CHECK_GL_ERROR;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     CHECK_GL_ERROR;
+
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+    rpclog("Display mode %dx%d @ %dHz\n", displayMode.w, displayMode.h, displayMode.refresh_rate);
+
+    vidc_bitmap_t initpattern = {
+        2048,
+        1024,
+        initpatterndat};
+    for (int i = 0; i < 2048 * 1024 * 4; i++)
+    {
+        initpatterndat[i] = i % 256;
+    }
+    video_renderer_update(&initpattern, 0, 0, 0, 0, 640, 256);
+    video_renderer_present(0, 0, 640, 256, 1);
+    video_renderer_flip();
 
     return SDL_TRUE;
 }
