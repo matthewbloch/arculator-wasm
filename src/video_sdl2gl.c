@@ -486,7 +486,8 @@ void video_renderer_flip()
     Uint64 thisFlip = SDL_GetPerformanceCounter();
     if (lastFlip) {
         Uint64 delta = thisFlip - lastFlip;
-        printf("flip frequency %fHz, ", (float)SDL_GetPerformanceFrequency() / (float)delta);
+        if (0)
+            printf("flip frequency %fHz, ", (float)SDL_GetPerformanceFrequency() / (float)delta);
     }
     lastFlip = thisFlip;
 
@@ -544,7 +545,7 @@ void video_renderer_flip()
     SDL_GL_SwapWindow(sdl_main_window);
     Uint64 swapEnd = SDL_GetPerformanceCounter();
     flips[flipN++ % AVG_FRAMES] = swapEnd - swapStart;
-    if (flipN > 10) {
+    if (0 && flipN > 10) {
         Uint64 avg = 0;
         int samples = flipN < AVG_FRAMES ? flipN : AVG_FRAMES;
         for (int f=0; f < samples; f++) {
@@ -565,8 +566,6 @@ void video_renderer_flip()
                 }
             }
         }
-        printf(")");
+        printf(")\n");
     }
-
-    printf("\n");
 }
