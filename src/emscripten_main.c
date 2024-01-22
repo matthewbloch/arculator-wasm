@@ -150,8 +150,8 @@ void arcloop()
         Uint64 now = SDL_GetPerformanceCounter();
         if (now >= nextFlip)
         {
-            nextFlip = now + (SDL_GetPerformanceFrequency() / 60);
             video_renderer_flip();
+            nextFlip = now + (SDL_GetPerformanceFrequency() / video_renderer_refresh_rate_hz());
         }
 }
 static int arc_main_thread()

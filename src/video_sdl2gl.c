@@ -58,6 +58,8 @@ char *video_renderer_get_name(int id) { return "SDL2+OpenGL"; }
 int video_renderer_reinit(void *unused) { return 0; }
 // FIXME
 
+int video_renderer_refresh_rate_hz() { return displayMode.refresh_rate; }
+
 int skip_video_render = 0;
 int take_screenshot = 0;
 int record_video = 0;
