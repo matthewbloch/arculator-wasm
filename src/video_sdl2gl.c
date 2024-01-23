@@ -48,7 +48,8 @@
 // other SDL code references this
 SDL_Window *sdl_main_window = NULL;
 static SDL_GLContext context = NULL;
-static GLuint screenTexture;
+static GLuint arcvideoTexture;
+static GLuint overlayTexture;
 static SDL_DisplayMode displayMode;
 
 // FIXME: vestigial bits left in to avoid changes to other files
@@ -259,9 +260,13 @@ int video_renderer_init(void *unused)
 
     glUseProgram(shaderProgram);
     CHECK_GL_ERROR;
-    int loc = glGetUniformLocation(shaderProgram, "texture1");
+    int loc = glGetUniformLocation(shaderProgram, "arcvideo");
     CHECK_GL_ERROR;
     glUniform1i(loc, 0);
+    CHECK_GL_ERROR;
+    loc = glGetUniformLocation(shaderProgram, "overlay");
+    CHECK_GL_ERROR;
+    glUniform1i(loc, 1);
     CHECK_GL_ERROR;
     monitorZoomLoc = glGetUniformLocation(shaderProgram, "zoom");
     CHECK_GL_ERROR;
@@ -318,8 +323,8 @@ int video_renderer_init(void *unused)
 
     /* Create the texture object to which we'll stream the Archimedes display */
 
-    glGenTextures(1, &screenTexture);
-    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glGenTextures(1, &arcvideoTexture);
+    glBindTexture(GL_TEXTURE_2D, arcvideoTexture);
     /* This 2048×1024 is the screen memory hardwired into the VIDC emulation */
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, 1024 * FRAME_BUFFERS, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     CHECK_GL_ERROR;
@@ -329,6 +334,17 @@ int video_renderer_init(void *unused)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     CHECK_GL_ERROR;
     /* The default is to assume our textures have mipmaps, so must turn that off  */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    CHECK_GL_ERROR;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    CHECK_GL_ERROR;
+
+    glGenTextures(1, &overlayTexture);
+    CHECK_GL_ERROR;
+    glBindTexture(GL_TEXTURE_2D, overlayTexture);
+    CHECK_GL_ERROR;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 768 * FRAME_BUFFERS, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    CHECK_GL_ERROR;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     CHECK_GL_ERROR;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -365,6 +381,27 @@ void video_renderer_close()
         SDL_GL_DeleteContext(context);
         context = NULL;
     }
+}
+
+void video_renderer_update_overlay(uint8_t *pixels, int src_x, int src_y, int dest_x, int dest_y, int w, int h)
+{
+    /*char *pattern = malloc(w * h * 4);
+    for (int i = 0; i < w * h * 4; i++)
+    {
+        pattern[i] = rand() & 0xff;
+    }*/
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, overlayTexture);
+    CHECK_GL_ERROR;
+    glTexSubImage2D(
+        GL_TEXTURE_2D, 0,
+        dest_x, dest_y, w, h,
+        GL_RGBA, // ??
+        GL_UNSIGNED_BYTE,
+        //pattern);
+        pixels + (src_y * w * 4) + src_x * 4);
+    CHECK_GL_ERROR;
+    //free(pattern);
 }
 
 /*Update display texture from memory bitmap src.*/
@@ -438,7 +475,8 @@ void video_renderer_update(vidc_bitmap_t *src, int src_x, int src_y, int dest_x,
     *  faster to use 2 or 3 textures and swap them, but don't know yet.
     */
 
-    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, arcvideoTexture);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, src->w);
     CHECK_GL_ERROR;
     glTexSubImage2D(
@@ -534,10 +572,10 @@ void video_renderer_flip()
     glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    /* Draw the monitor */
+    /* Draw the screen */
 
     glActiveTexture(GL_TEXTURE0); CHECK_GL_ERROR;
-    glBindTexture(GL_TEXTURE_2D, screenTexture); CHECK_GL_ERROR;
+    glBindTexture(GL_TEXTURE_2D, arcvideoTexture); CHECK_GL_ERROR;
     glUseProgram(shaderProgram); CHECK_GL_ERROR;
     glBindVertexArray(monitorVao); CHECK_GL_ERROR;
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); CHECK_GL_ERROR;

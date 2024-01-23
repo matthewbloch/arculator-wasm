@@ -3,13 +3,14 @@ precision highp float;
 out vec4 FragColor;
 in vec3 ourColor;
 in vec2 TexCoord;
-uniform sampler2D texture1;
+uniform sampler2D arcvideo;
+uniform sampler2D overlay;
 uniform vec4 zoom;
 uniform int frame;
 void main()
 {
-    vec4 izoom = zoom;
-    ivec2 isize = textureSize(texture1, 0);
+    vec4  izoom = zoom;
+    ivec2 isize = textureSize(arcvideo, 0);
     vec2  size = vec2(isize.x, isize.y);
 
     izoom.y += float(frame) * 1024;
@@ -25,6 +26,17 @@ void main()
     //
     // So flip it to RGBA which is the portable format the texture is set up for,
     // and force the alpha to 1.0.
-    FragColor = texture(texture1, zoomed).bgra;
+    vec4 overlayPixel = texture(overlay, TexCoord).bgra;
+    if (overlayPixel.a == 0.0) {
+        FragColor = texture(arcvideo, zoomed).bgra;
+    } else {
+        FragColor = overlayPixel;
+    }
+    //FragColor = mix(
+    //    texture(arcvideo, zoomed).bgra, 
+    //    texture(overlay, TexCoord).bgra,
+    //    1.0
+    //);
+    //FragColor = texture(arcvideo, zoomed).bgra;
     FragColor.a = 1.0;
 }

@@ -14,6 +14,7 @@
 #include "disc.h"
 #include "ioc.h"
 #include "sound.h"
+#include "overlay.h"
 #include "plat_sound.h"
 #include "plat_input.h"
 #include "plat_video.h"
@@ -136,6 +137,8 @@ void arcloop()
         }
 
         process_event();
+        overlay_run();
+        overlay_draw(); // FIXME: on timer
 
         if (quited)
             exit(0);
@@ -164,6 +167,7 @@ static int arc_main_thread()
         fatal("Video renderer init failed");
     }
 
+    overlay_init();
     input_init();
     // sdl_enable_mouse_capture();
     arc_init();
