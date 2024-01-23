@@ -20,7 +20,9 @@ BUILD_TAG := $(shell echo `git rev-parse --short HEAD`-`[[ -n $$(git status -s) 
 
 CC             ?= gcc
 W64CC          := x86_64-w64-mingw32-gcc
-CFLAGS         := -D_REENTRANT -DARCWEB -Wall -Werror -DBUILD_TAG="${BUILD_TAG}" -Isrc -Ibuild/generated-src -include embed.h
+CFLAGS         := -D_GNU_SOURCE -D_REENTRANT -DARCWEB -Wall -Werror -DBUILD_TAG="${BUILD_TAG}" -Isrc -Ibuild/generated-src -include embed.h
+# for pixman
+CFLAGS         += -Wno-discarded-qualifiers -Wno-unused-local-typedefs -msse4.1 -DPIXMAN_NO_TLS -DPACKAGE -Isrc/pixman
 ifeq ($(UNAME),Darwin)
   CFLAGS += -Fbuild/SDL2-mac -DGL_SILENCE_DEPRECATION
 endif
@@ -43,7 +45,8 @@ ifdef DEBUG
   $(info ❗BUILD_TAG="${BUILD_TAG}")
   FULL_FAT = 1
 else
-  CFLAGS += -O3 -flto
+  CFLAGS += -O2 -flto -g3
+  CFLAGS_WASM += -O3 -flto -g3
   LINKFLAGS += -flto
   $(info ❗BUILD_TAG="${BUILD_TAG}")
   $(info ❗Re-run make with DEBUG=1 if you want a debug build)
@@ -65,18 +68,22 @@ OBJS := 82c711 82c711_fdc \
 	ide_riscdev ide_zidefs ide_zidefs_a3k \
 	input_sdl2 ioc ioeb joystick keyboard \
 	lc main mem memc podules printer \
-	riscdev_hdfc romload sound sound_sdl2 \
+	riscdev_hdfc romload sound sound_sdl2 overlay \
 	st506 st506_akd52 timer vidc video_sdl2gl wd1770 \
 	wx-sdl2-joystick \
     emscripten_main emscripten-console emscripten_podule_config podules-static \
 	embed c-embed
+
+MUI_OBJS = mui/c2_arrays mui/c2_geometry mui/cg mui/mui_alert mui/mui mui/mui_cdef_boxes mui/mui_cdef_buttons mui/mui_cdef_listbox mui/mui_cdef_scrollbar mui/mui_controls mui/mui_drawable mui/mui_font mui/mui_menus mui/mui_menus_draw mui/mui_stdfile mui/mui_utils mui/mui_window mui/xft
+
+PIXMAN_OBJS = $(addprefix pixman/, pixman-access-accessors pixman-access pixman-arm pixman-bits-image pixman pixman-combine32 pixman-combine-float pixman-conical-gradient pixman-edge-accessors pixman-edge pixman-fast-path pixman-filter pixman-general pixman-glyph pixman-gradient-walker pixman-image pixman-implementation pixman-linear-gradient pixman-matrix pixman-mips pixman-mmx pixman-noop pixman-ppc pixman-radial-gradient pixman-region16 pixman-region32 pixman-solid-fill pixman-sse2 pixman-ssse3 pixman-timer pixman-trap pixman-utils pixman-x86)
 
 PODULE_COMMON_INCLUDES = $(addprefix -I, $(sort $(dir $(wildcard podules/common/*/*.h))))
 PODULE_DEFINES = $(addprefix -DPODULE_, $(filter-out common_%, $(BUILD_PODULES)))
 
 ######################################################################
 
-OBJS_DOT_O := $(addsuffix .o,${OBJS})
+OBJS_DOT_O := $(addsuffix .o,${OBJS}) $(addsuffix .o,${MUI_OBJS}) $(addsuffix .o,${PIXMAN_OBJS})
 
 OBJS_WASM   := $(addprefix build/wasm/,${OBJS_DOT_O}) build/wasm/hostfs-unix.o build/wasm/hostfs_emscripten.o
 OBJS_NATIVE := $(addprefix build/native/,${OBJS_DOT_O}) build/native/hostfs-unix.o build/native/gl.o
