@@ -26,7 +26,7 @@ static EFILE* eopen(const char* file, const char* mode){
   if( map == NULL || end == NULL )
     return NULL;
 
-  const uint32_t key = hash((char*)file);
+  const uint32_t key = murmurhash((char*)file);
   while( ((char*)map != end) && (map->hash != key) ) {
     map++;
   }

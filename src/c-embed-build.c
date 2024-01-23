@@ -28,7 +28,7 @@ void cembed(char* filename){
   }
 
   fseek(file, 0, SEEK_END);     // Define Map
-  EMAP map = {hash(filename), pos, (u_int32_t)ftell(file)};
+  EMAP map = {murmurhash(filename), pos, (u_int32_t)ftell(file)};
   rewind (file);
 
   fprintf(stderr, "embedding %s\n", filename);

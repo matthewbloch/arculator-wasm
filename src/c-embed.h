@@ -24,7 +24,7 @@ struct EFILE_S
 };
 typedef struct EFILE_S EFILE;
 
-static inline uint32_t hash(char *key)
+static inline uint32_t murmurhash(char *key)
 { // Hash Function: MurmurOAAT64
     uint32_t h = 3323198485ul;
     for (; *key; ++key)
