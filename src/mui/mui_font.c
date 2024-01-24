@@ -16,15 +16,6 @@
 #define STB_TTC_IMPLEMENTATION
 #include "stb_ttc.h"
 
-
-#define INCBIN_STYLE INCBIN_STYLE_SNAKE
-#define INCBIN_PREFIX mui_
-#include "incbin.h"
-
-INCBIN(main_font, "fonts/Charcoal_mui.ttf");
-INCBIN(icon_font, "fonts/typicon.ttf");
-INCBIN(dingbat_font, "fonts/Dingbat.ttf");
-
 #include "mui.h"
 
 mui_font_t *
@@ -73,13 +64,13 @@ void
 mui_font_init(
 		mui_t *ui)
 {
+    size_t main_size, icon_size;
+    char* main_data = embed_data("fonts/Charcoal_mui.ttf", &main_size);
+    char *icon_data = embed_data("fonts/typicon.ttf", &icon_size);
 	printf("%s: Loading fonts\n", __func__);
-	mui_font_from_mem(ui, "main", 28,
-			mui_main_font_data, mui_main_font_size);
-	mui_font_from_mem(ui, "icon_large", 96,
-			mui_icon_font_data, mui_icon_font_size);
-	mui_font_from_mem(ui, "icon_small", 30,
-			mui_icon_font_data, mui_icon_font_size);
+	mui_font_from_mem(ui, "main", 28, main_data, main_size);
+	mui_font_from_mem(ui, "icon_large", 96, icon_data, icon_size);
+	mui_font_from_mem(ui, "icon_small", 30, icon_data, icon_size);
 }
 
 void

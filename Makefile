@@ -38,6 +38,7 @@ endif
 LINKFLAGS_W64  := -Wl,-Bstatic -lz -Wl,-Bdynamic -lSDL2 -lm -lopengl32 -lglu32
 LINKFLAGS_WASM := -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sTOTAL_MEMORY=32768000 -sFORCE_FILESYSTEM -sUSE_WEBGL2=1 -sEXPORTED_RUNTIME_METHODS=[\"ccall\"] -lidbfs.js
 DATA           := ddnoise src/video.vert.glsl src/video.frag.glsl
+DATA           += fonts/Charcoal_mui.ttf fonts/typicon.ttf fonts/Dingbat.ttf
 
 ifdef DEBUG
   CFLAGS += -D_DEBUG -DDEBUG_LOG -O0 -g3
