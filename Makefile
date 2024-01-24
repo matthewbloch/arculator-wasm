@@ -22,9 +22,11 @@ CC             ?= gcc
 W64CC          := x86_64-w64-mingw32-gcc
 CFLAGS         := -D_GNU_SOURCE -D_REENTRANT -DARCWEB -Wall -Werror -DBUILD_TAG="${BUILD_TAG}" -Isrc -Ibuild/generated-src -include embed.h
 # for pixman
-CFLAGS         += -Wno-discarded-qualifiers -Wno-unused-local-typedefs -msse4.1 -DPIXMAN_NO_TLS -DPACKAGE -Isrc/pixman
+CFLAGS         += -Wno-unused-local-typedefs -DPIXMAN_NO_TLS -DPACKAGE -Isrc/pixman
 ifeq ($(UNAME),Darwin)
-  CFLAGS += -Fbuild/SDL2-mac -DGL_SILENCE_DEPRECATION
+  CFLAGS += -Fbuild/SDL2-mac -DGL_SILENCE_DEPRECATION -Wno-incompatible-pointer-types-discards-qualifiers -Wno-unknown-attributes -Wno-unused-function
+else
+  CLFAGS += -msse4.1 -Wno-discarded-qualifiers
 endif
 CFLAGS_WASM    := -sUSE_ZLIB=1 -sUSE_SDL=2 -Ibuild/generated-src
 LINKFLAGS      := -lz -lm
@@ -76,7 +78,7 @@ OBJS := 82c711 82c711_fdc \
 
 MUI_OBJS = mui/c2_arrays mui/c2_geometry mui/cg mui/mui_alert mui/mui mui/mui_cdef_boxes mui/mui_cdef_buttons mui/mui_cdef_listbox mui/mui_cdef_scrollbar mui/mui_controls mui/mui_drawable mui/mui_font mui/mui_menus mui/mui_menus_draw mui/mui_stdfile mui/mui_utils mui/mui_window mui/xft
 
-PIXMAN_OBJS = $(addprefix pixman/, pixman-access-accessors pixman-access pixman-arm pixman-bits-image pixman pixman-combine32 pixman-combine-float pixman-conical-gradient pixman-edge-accessors pixman-edge pixman-fast-path pixman-filter pixman-general pixman-glyph pixman-gradient-walker pixman-image pixman-implementation pixman-linear-gradient pixman-matrix pixman-mips pixman-mmx pixman-noop pixman-ppc pixman-radial-gradient pixman-region16 pixman-region32 pixman-solid-fill pixman-sse2 pixman-ssse3 pixman-timer pixman-trap pixman-utils pixman-x86)
+PIXMAN_OBJS = $(addprefix pixman/, pixman-access-accessors pixman-access pixman-arm pixman-bits-image pixman pixman-combine32 pixman-combine-float pixman-conical-gradient pixman-edge-accessors pixman-edge pixman-fast-path pixman-filter pixman-general pixman-glyph pixman-gradient-walker pixman-image pixman-implementation pixman-linear-gradient pixman-matrix pixman-mips pixman-mmx pixman-noop pixman-ppc pixman-radial-gradient pixman-region16 pixman-region32 pixman-solid-fill pixman-timer pixman-trap pixman-utils pixman-x86)
 
 PODULE_COMMON_INCLUDES = $(addprefix -I, $(sort $(dir $(wildcard podules/common/*/*.h))))
 PODULE_DEFINES = $(addprefix -DPODULE_, $(filter-out common_%, $(BUILD_PODULES)))
