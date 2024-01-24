@@ -150,11 +150,16 @@ void arcloop()
         
         SDL_UnlockMutex(main_thread_mutex);
 
-        Uint64 now = SDL_GetPerformanceCounter();
-        if (now >= nextFlip)
-        {
+        if (video_renderer_refresh_rate_hz() > 0) {
+            Uint64 now = SDL_GetPerformanceCounter();
+            if (now >= nextFlip)
+            {
+                video_renderer_flip();
+                nextFlip = now + (SDL_GetPerformanceFrequency() / video_renderer_refresh_rate_hz());
+            }
+        } else {
+            // Emscripten organises the timing
             video_renderer_flip();
-            nextFlip = now + (SDL_GetPerformanceFrequency() / video_renderer_refresh_rate_hz());
         }
 }
 static int arc_main_thread()

@@ -188,13 +188,17 @@ int video_renderer_init(void *unused)
 {
     /* SDL and OpenGL globals */
     SDL_Init(SDL_INIT_VIDEO);
+
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+    rpclog("Display mode %dx%d @ %dHz\n", displayMode.w, displayMode.h, displayMode.refresh_rate);
+
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-    SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(displayMode.refresh_rate > 0 ? 0 : 1);
 
 #ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -349,9 +353,6 @@ int video_renderer_init(void *unused)
     CHECK_GL_ERROR;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     CHECK_GL_ERROR;
-
-    SDL_GetCurrentDisplayMode(0, &displayMode);
-    rpclog("Display mode %dx%d @ %dHz\n", displayMode.w, displayMode.h, displayMode.refresh_rate);
 
     vidc_bitmap_t initpattern = {
         2048,

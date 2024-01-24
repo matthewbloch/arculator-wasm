@@ -13,7 +13,7 @@ void main()
     ivec2 isize = textureSize(arcvideo, 0);
     vec2  size = vec2(isize.x, isize.y);
 
-    izoom.y += float(frame) * 1024;
+    izoom.y += float(frame) * 1024.0;
 
     // we flipped the y co-ordinate of the texture, compensate for that
     izoom.y += izoom.w;
