@@ -26,7 +26,7 @@ CFLAGS         += -Wno-unused-local-typedefs -DPIXMAN_NO_TLS -DPACKAGE -Isrc/pix
 ifeq ($(UNAME),Darwin)
   CFLAGS += -Fbuild/SDL2-mac -DGL_SILENCE_DEPRECATION -Wno-incompatible-pointer-types-discards-qualifiers -Wno-unknown-attributes -Wno-unused-function
 else
-  CLFAGS += -msse4.1 -Wno-discarded-qualifiers
+  CFLAGS += -msse4.1 -Wno-discarded-qualifiers
 endif
 CFLAGS_WASM    := -sUSE_ZLIB=1 -sUSE_SDL=2 -Ibuild/generated-src
 LINKFLAGS      := -lz -lm
