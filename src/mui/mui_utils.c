@@ -19,7 +19,6 @@ mui_get_time()
     if (!freq.QuadPart)
         QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&count);
-    printf("%lld\n", count.QuadPart*MUI_TIME_SECOND/freq.QuadPart);
     return (mui_time_t) count.QuadPart*MUI_TIME_SECOND/freq.QuadPart;
 }
 #else
