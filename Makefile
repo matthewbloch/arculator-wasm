@@ -26,9 +26,11 @@ CFLAGS         += -Wno-unused-local-typedefs -DPIXMAN_NO_TLS -DPACKAGE -Isrc/pix
 ifeq ($(UNAME),Darwin)
   CFLAGS += -Fbuild/SDL2-mac -DGL_SILENCE_DEPRECATION -Wno-incompatible-pointer-types-discards-qualifiers -Wno-unknown-attributes -Wno-unused-function
 else
-  CFLAGS += -msse4.1 -Wno-discarded-qualifiers
+  CFLAGS += -msse4.1 -Wno-unused-function
+  CFLAGS_NATIVE += -Wno-discarded-qualifiers
+  CFLAGS_WIN64  += -Wno-discarded-qualifiers
 endif
-CFLAGS_WASM    := -sUSE_ZLIB=1 -sUSE_SDL=2 -Ibuild/generated-src
+CFLAGS_WASM    := -msimd128 -sUSE_ZLIB=1 -sUSE_SDL=2 -Ibuild/generated-src -Wno-ignored-qualifiers -Wno-unknown-attributes -Wno-incompatible-pointer-types-discards-qualifiers
 LINKFLAGS      := -lz -lm
 ifeq ($(UNAME),Darwin)
   LINKFLAGS += -Fbuild/SDL2-mac -F/System/Library/Frameworks -framework SDL2 -framework OpenGL -rpath build/SDL2-mac -rpath @executable_path/../Resources/
@@ -176,7 +178,7 @@ build/native/c-embed-build: src/c-embed-build.c
 
 build/native/c-embed.o: build/generated-src/c-embed.c
 	@mkdir -p $(@D)
-	${CC} -c ${CFLAGS} $< -o $@
+	${CC} -c ${CFLAGS} ${CFLAGS_NATIVE} $< -o $@
 
 ifeq ($(UNAME),Darwin)
   SDL2_MAC = build/SDL2-mac
@@ -184,7 +186,7 @@ endif
 
 build/native/%.o: src/%.c $(SDL2_MAC)
 	@mkdir -p $(@D)
-	${CC} -c ${CFLAGS} ${PODULE_DEFINES} $< -o $@
+	${CC} -c ${CFLAGS} ${CFLAGS_NATIVE} ${PODULE_DEFINES} $< -o $@
 
 #### Rules for podules ###############################################
 
@@ -221,11 +223,11 @@ build/win64/arculator.exe: ${OBJS_WIN64}
 
 build/win64/c-embed.o: build/generated-src/c-embed.c
 	@mkdir -p $(@D)
-	${W64CC} -c ${CFLAGS} $< -o $@
+	${W64CC} -c ${CFLAGS} ${CFLAGS_WIN64} $< -o $@
 
 build/win64/%.o: src/%.c SDL2
 	@mkdir -p $(@D)
-	${W64CC} `./SDL2/x86_64-w64-mingw32/bin/sdl2-config --cflags` -c ${CFLAGS} ${PODULE_DEFINES} $< -o $@
+	${W64CC} `./SDL2/x86_64-w64-mingw32/bin/sdl2-config --cflags` -c ${CFLAGS} ${CFLAGS_WIN64} ${PODULE_DEFINES} $< -o $@
 
 build/win64/icon.o: build/win64/icon.rc
 	@mkdir -p $(@D)
@@ -301,7 +303,7 @@ build/wasm/arculator.data: ${DATA}
 
 build/wasm/c-embed.o: build/generated-src/c-embed.c
 	@mkdir -p $(@D)
-	emcc -c ${CFLAGS} $< -o $@
+	emcc -c ${CFLAGS} ${CFLAGS_WASM} $< -o $@
 
 build/wasm/%.o: src/%.c
 	@mkdir -p $(@D)
