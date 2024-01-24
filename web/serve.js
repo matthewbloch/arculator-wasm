@@ -17,6 +17,7 @@ var mimeTypes = {
     '.html': 'text/html',
     '.js': 'text/javascript',
     '.wasm': 'application/wasm',
+    '.map': 'application/json',
     '.css': 'text/css',
     '.png': 'image/png',
     '.jpg': 'image/jpg',

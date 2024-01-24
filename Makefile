@@ -42,7 +42,7 @@ DATA           += fonts/Charcoal_mui.ttf fonts/typicon.ttf fonts/Dingbat.ttf
 
 ifdef DEBUG
   CFLAGS += -D_DEBUG -DDEBUG_LOG -O0 -g3
-  LINKFLAGS_WASM += -gsource-map
+  LINKFLAGS_WASM += -gsource-map  --source-map-base http://$(SERVE_IP):$(SERVE_PORT)/build/wasm/
   LINKFLAGS_W64 += -mconsole
   BUILD_TAG +=  (DEBUG)
   $(info ❗BUILD_TAG="${BUILD_TAG}")
