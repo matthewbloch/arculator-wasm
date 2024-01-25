@@ -64,22 +64,19 @@ void process_event()
     SDL_Event e;
     while (SDL_PollEvent(&e) != 0)
     {
+        overlay_event(&e);
         if (e.type == SDL_QUIT)
         {
             quited = 1;
-        }
-        if (e.type == SDL_MOUSEBUTTONUP)
-        {
-            if (e.button.button == SDL_BUTTON_LEFT && !mouse_capture_enabled() && !vidc_cursor_visible())
-            {
-                rpclog("Mouse click -- enabling mouse capture\n");
-                sdl_enable_mouse_capture();
-            }
         }
         if (e.type == SDL_WINDOWEVENT)
         {
             switch (e.window.event)
             {
+            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                rpclog("window size changed to %d x %d\n", e.window.data1, e.window.data2);
+                overlay_set_size(e.window.data1, e.window.data2);
+                break;
             case SDL_WINDOWEVENT_FOCUS_LOST:
                 if (mouse_capture_enabled())
                 {
@@ -171,8 +168,8 @@ static int arc_main_thread()
     {
         fatal("Video renderer init failed");
     }
-
-    overlay_init();
+    video_window_info_t vid = video_window_info();
+    overlay_init(vid.window.w, vid.window.h);
     input_init();
     // sdl_enable_mouse_capture();
     arc_init();

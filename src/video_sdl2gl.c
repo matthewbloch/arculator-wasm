@@ -347,7 +347,7 @@ int video_renderer_init(void *unused)
     CHECK_GL_ERROR;
     glBindTexture(GL_TEXTURE_2D, overlayTexture);
     CHECK_GL_ERROR;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 768 * FRAME_BUFFERS, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     CHECK_GL_ERROR;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     CHECK_GL_ERROR;
@@ -386,14 +386,21 @@ void video_renderer_close()
 
 void video_renderer_update_overlay(uint8_t *pixels, int src_x, int src_y, int dest_x, int dest_y, int w, int h)
 {
-    /*char *pattern = malloc(w * h * 4);
-    for (int i = 0; i < w * h * 4; i++)
-    {
-        pattern[i] = rand() & 0xff;
-    }*/
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, overlayTexture);
+
+    int ow, oh;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &ow);
     CHECK_GL_ERROR;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &oh);
+    CHECK_GL_ERROR;
+
+    if (ow != w || oh != h) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        rpclog("video_renderer_update_overlay: src=%i,%i dest=%i,%i size=%i,%i (ow=%d,oh=%d)\n", src_x, src_y, dest_x, dest_y, w, h, ow, oh);
+    }
+    CHECK_GL_ERROR;
+
     glTexSubImage2D(
         GL_TEXTURE_2D, 0,
         dest_x, dest_y, w, h,
